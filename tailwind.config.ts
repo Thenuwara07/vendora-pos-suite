@@ -26,7 +26,8 @@ export default {
 				foreground: 'hsl(var(--foreground))',
 				primary: {
 					DEFAULT: 'hsl(var(--primary))',
-					foreground: 'hsl(var(--primary-foreground))'
+					foreground: 'hsl(var(--primary-foreground))',
+					hover: 'hsl(var(--primary-hover))'
 				},
 				secondary: {
 					DEFAULT: 'hsl(var(--secondary))',
@@ -43,6 +44,29 @@ export default {
 				accent: {
 					DEFAULT: 'hsl(var(--accent))',
 					foreground: 'hsl(var(--accent-foreground))'
+				},
+				success: {
+					DEFAULT: 'hsl(var(--success))',
+					foreground: 'hsl(var(--success-foreground))'
+				},
+				warning: {
+					DEFAULT: 'hsl(var(--warning))',
+					foreground: 'hsl(var(--warning-foreground))'
+				},
+				admin: {
+					DEFAULT: 'hsl(var(--admin))',
+					foreground: 'hsl(var(--admin-foreground))',
+					bg: 'hsl(var(--admin-bg))'
+				},
+				cashier: {
+					DEFAULT: 'hsl(var(--cashier))',
+					foreground: 'hsl(var(--cashier-foreground))',
+					bg: 'hsl(var(--cashier-bg))'
+				},
+				salesman: {
+					DEFAULT: 'hsl(var(--salesman))',
+					foreground: 'hsl(var(--salesman-foreground))',
+					bg: 'hsl(var(--salesman-bg))'
 				},
 				popover: {
 					DEFAULT: 'hsl(var(--popover))',
