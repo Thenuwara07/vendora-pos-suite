@@ -1,41 +1,30 @@
-// LoginForm.tsx
+// src/pages/LoginForm.tsx
 import React, { useState } from "react";
 import { Store, Users, ShoppingCart, Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-
-/**
- * NOTE:
- * - We call your real useAuth().login(email, password) so your existing
- *   ProtectedRoutes / role-based redirects keep working.
- * - If you prefer to navigate right here, see the optional snippet at the bottom.
- */
+import { startMosipLogin } from "@/auth/mosipAuth";
+// If you navigate here after login via app-level guards, no need to import useNavigate.
 
 const LoginForm: React.FC = () => {
-  const { login } = useAuth();
+  const { login, loginWithMosip } = useAuth();
   const { toast } = useToast();
 
-  // form state
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [focusedInput, setFocusedInput] = useState<"" | "email" | "password">("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isOIDC, setIsOIDC] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isLoading) return;
+    if (isLoading || isOIDC) return;
     setIsLoading(true);
-
     try {
       const ok = await login(email.trim(), password);
       if (ok) {
-        toast({
-          title: "Login Successful",
-          description: "Welcome to POS System",
-        });
-        // We rely on your app-level routing after auth state changes.
-        // If you want to navigate here, see the optional snippet below.
+        toast({ title: "Login Successful", description: "Welcome to POS System" });
       } else {
         toast({
           title: "Login Failed",
@@ -43,12 +32,8 @@ const LoginForm: React.FC = () => {
           variant: "destructive",
         });
       }
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: "Something went wrong. Please try again.",
-        variant: "destructive",
-      });
+    } catch {
+      toast({ title: "Error", description: "Something went wrong.", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -64,9 +49,30 @@ const LoginForm: React.FC = () => {
     setPassword("password");
   };
 
+  const handleMosipLogin = async () => {
+    try {
+      setIsOIDC(true);
+      const result = await startMosipLogin();
+
+      if (result.mode === "mock") {
+        // Directly authenticate using the mocked MOSIP session
+        await loginWithMosip(result.session);
+        toast({ title: "MOSIP (Mock) Login", description: "Logged in with mock MOSIP session" });
+        setIsOIDC(false);
+        // If your app does not auto-redirect on auth state, you can navigate here.
+        // e.g., navigate("/cashier", { replace: true });
+      } else {
+        // REAL mode: browser is redirected to MOSIP IdP
+      }
+    } catch (e) {
+      console.error(e);
+      setIsOIDC(false);
+      toast({ title: "MOSIP Error", description: "Could not start MOSIP login.", variant: "destructive" });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-violet-900/70 to-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Floating gradient blobs */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-purple-500/40 rounded-full blur-3xl animate-pulse" />
         <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-blue-500/30 rounded-full blur-3xl animate-pulse" />
@@ -74,9 +80,7 @@ const LoginForm: React.FC = () => {
       </div>
 
       <div className="relative w-full max-w-md">
-        {/* Card */}
         <div className="backdrop-blur-xl bg-white/10 border border-white/15 rounded-3xl shadow-2xl overflow-hidden ring-1 ring-white/10">
-          {/* Header */}
           <div className="text-center p-8 pb-4">
             <div className="relative inline-block mb-6">
               <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-blue-500 rounded-2xl flex items-center justify-center shadow-lg rotate-3 hover:rotate-0 transition-transform duration-300">
@@ -90,26 +94,26 @@ const LoginForm: React.FC = () => {
             <p className="text-white/70 text-base mt-1">Professional Point of Sale Solution</p>
           </div>
 
-          {/* Body */}
           <div className="px-8 pb-8">
-            {/* Title */}
             <div className="text-center mb-6">
               <h2 className="text-xl font-semibold text-white">Login to your account</h2>
               <p className="text-white/60 text-sm">Enter your credentials to access the system</p>
             </div>
 
-            {/* Form */}
+            {/* MOSIP SSO button */}
+            <button
+              onClick={handleMosipLogin}
+              disabled={isOIDC || isLoading}
+              className="w-full mb-5 py-3 rounded-xl font-semibold transition-all duration-300 bg-white/15 hover:bg-white/25 border border-white/20 text-white shadow-lg active:scale-95"
+            >
+              {isOIDC ? "Redirecting to MOSIP…" : "Login with MOSIP"}
+            </button>
+
+            {/* Username/password form */}
             <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Email */}
               <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium text-white/90">
-                  Email
-                </label>
-                <div
-                  className={`relative transition-all duration-300 ${
-                    focusedInput === "email" ? "scale-[1.02]" : ""
-                  }`}
-                >
+                <label htmlFor="email" className="text-sm font-medium text-white/90">Email</label>
+                <div className={`relative transition-all duration-300 ${focusedInput === "email" ? "scale-[1.02]" : ""}`}>
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/60" />
                   <input
                     id="email"
@@ -129,16 +133,9 @@ const LoginForm: React.FC = () => {
                 </div>
               </div>
 
-              {/* Password */}
               <div className="space-y-2">
-                <label htmlFor="password" className="text-sm font-medium text-white/90">
-                  Password
-                </label>
-                <div
-                  className={`relative transition-all duration-300 ${
-                    focusedInput === "password" ? "scale-[1.02]" : ""
-                  }`}
-                >
+                <label htmlFor="password" className="text-sm font-medium text-white/90">Password</label>
+                <div className={`relative transition-all duration-300 ${focusedInput === "password" ? "scale-[1.02]" : ""}`}>
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/60" />
                   <input
                     id="password"
@@ -166,10 +163,9 @@ const LoginForm: React.FC = () => {
                 </div>
               </div>
 
-              {/* Submit */}
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || isOIDC}
                 className="w-full py-4 bg-gradient-to-r from-purple-500 to-blue-500 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-95 transition-all duration-300 disabled:opacity-60 relative overflow-hidden group"
               >
                 {isLoading ? "Logging in..." : "Login"}
@@ -179,50 +175,33 @@ const LoginForm: React.FC = () => {
               </button>
             </form>
 
-            {/* Quick login */}
+            {/* Quick login demo */}
             <div className="mt-8 space-y-4">
               <div className="text-center">
                 <span className="text-white/70 text-sm">Quick Login (Demo)</span>
               </div>
-
               <div className="grid grid-cols-3 gap-3">
-                <button
-                  onClick={() => quickLogin("admin")}
-                  className="group p-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 hover:border-white/20 transition-all duration-300 hover:scale-[1.02] active:scale-95"
-                  type="button"
-                >
+                <button onClick={() => quickLogin("admin")} className="group p-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 hover:border-white/20 transition-all duration-300 hover:scale-[1.02] active:scale-95" type="button">
                   <Users className="w-5 h-5 text-purple-300 mx-auto mb-1" />
                   <span className="text-xs text-white/80 group-hover:text-white">Admin</span>
                 </button>
-
-                <button
-                  onClick={() => quickLogin("cashier")}
-                  className="group p-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 hover:border-white/20 transition-all duration-300 hover:scale-[1.02] active:scale-95"
-                  type="button"
-                >
+                <button onClick={() => quickLogin("cashier")} className="group p-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 hover:border-white/20 transition-all duration-300 hover:scale-[1.02] active:scale-95" type="button">
                   <ShoppingCart className="w-5 h-5 text-blue-300 mx-auto mb-1" />
                   <span className="text-xs text-white/80 group-hover:text-white">Cashier</span>
                 </button>
-
-                <button
-                  onClick={() => quickLogin("salesman")}
-                  className="group p-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 hover:border-white/20 transition-all duration-300 hover:scale-[1.02] active:scale-95"
-                  type="button"
-                >
+                <button onClick={() => quickLogin("salesman")} className="group p-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 hover:border-white/20 transition-all duration-300 hover:scale-[1.02] active:scale-95" type="button">
                   <Store className="w-5 h-5 text-emerald-300 mx-auto mb-1" />
                   <span className="text-xs text-white/80 group-hover:text-white">Salesman</span>
                 </button>
               </div>
             </div>
 
-            {/* Footer */}
             <div className="mt-6 text-center">
               <p className="text-white/40 text-xs">Secure • Reliable • Modern</p>
             </div>
           </div>
         </div>
 
-        {/* Decorative dots */}
         <div className="absolute -top-4 -left-4 w-8 h-8 bg-purple-400 rounded-full opacity-60 animate-bounce" />
         <div className="absolute -top-2 -right-6 w-4 h-4 bg-blue-400 rounded-full opacity-40 animate-bounce" />
         <div className="absolute -bottom-4 -right-2 w-6 h-6 bg-pink-400 rounded-full opacity-50 animate-bounce" />
@@ -232,15 +211,3 @@ const LoginForm: React.FC = () => {
 };
 
 export default LoginForm;
-
-/* --------------------------
-OPTIONAL: navigate right here
------------------------------
-import { useNavigate } from "react-router-dom";
-const navigate = useNavigate();
-
-...after ok === true in handleSubmit:
-  // If your login() returns role, you can branch here. Otherwise push to a generic page.
-  navigate("/dashboard", { replace: true });
-  // or navigate(roleRouteMap[role] ?? "/dashboard", { replace: true });
-*/
