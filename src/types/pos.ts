@@ -64,6 +64,7 @@ export interface StockRequest {
   items: RequestedItem[];
   status: 'pending' | 'approved' | 'rejected';
   message?: string;
+  adminResponse?: string;
   createdAt: Date;
   processedAt?: Date;
   processedBy?: string;

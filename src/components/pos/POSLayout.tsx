@@ -4,6 +4,11 @@ import Navigation from './Navigation';
 import AdminDashboard from './admin/AdminDashboard';
 import POSInterface from './cashier/POSInterface';
 import SalesmanDashboard from './salesman/SalesmanDashboard';
+import ReportsView from './admin/ReportsView';
+import InventoryManagement from './admin/InventoryManagement';
+import UserManagement from './admin/UserManagement';
+import RequestsManagement from './admin/RequestsManagement';
+import BillHistory from './cashier/BillHistory';
 
 const POSLayout = () => {
   const { user } = useAuth();
@@ -69,19 +74,20 @@ const POSLayout = () => {
         return <POSInterface />;
       
       case 'reports':
-        return <div className="p-6">Reports coming soon...</div>;
+        return <ReportsView />;
       
       case 'inventory':
-        return <div className="p-6">Inventory management coming soon...</div>;
+        return <InventoryManagement />;
       
       case 'users':
-        return <div className="p-6">User management coming soon...</div>;
+        return <UserManagement />;
       
       case 'requests':
-        return <div className="p-6">Requests management coming soon...</div>;
+        if (user?.role === 'admin') return <RequestsManagement />;
+        return <div>Requests not available for this role</div>;
       
       case 'bills':
-        return <div className="p-6">Bill history coming soon...</div>;
+        return <BillHistory />;
       
       case 'stock':
         return <SalesmanDashboard />;
